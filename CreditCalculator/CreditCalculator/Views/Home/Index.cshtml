@@ -1,8 +1,184 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
-}
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор займа</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            padding: 20px;
+        }
+        .form-group label {
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Калькулятор займа</h1>
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+        <div class="btn-group" role="group" aria-label="Basic example">
+            <button type="button" class="btn btn-primary" id="monthlyCalcButton">Расчет займа в месяцах</button>
+            <button type="button" class="btn btn-primary" id="dailyCalcButton">Расчет займа в днях</button>
+        </div>
+
+        <div id="monthlyCalcForm" style="display: none;">
+            <form id="loanFormMonths">
+            <div class="form-group">
+                <label for="Amount">Сумма займа:</label>
+                <input type="number" class="form-control" id="Amount" placeholder="Введите сумму" required>
+                <div id="loanAmountError" class="error"></div>
+            </div>
+            <div class="form-group">
+                <label for="Term">Срок займа (в месяцах):</label>
+                <input type="number" class="form-control" id="Term" placeholder="Введите срок" required>
+                <div id="loanTermError" class="error"></div>
+            </div>
+            <div class="form-group">
+                <label for="Rate">Ставка (в год):</label>
+                <input type="number" class="form-control" id="Rate" placeholder="Введите ставку" required>
+                <div id="interestRateError" class="error"></div>
+            </div>
+            <button type="button" class="btn btn-primary" id="calculateButton">Рассчитать</button>
+        </form>
+        </div>
+        <div id="result" style="display: none;">
+            <h2>Результат расчета:</h2>
+            <p>Ежемесячный платеж: <span id="monthlyPayment"></span></p>
+        </div>
+
+        <div id="dailyCalcForm" style="display: none;">
+            <form id="loanFormDays">
+                <div class="form-group">
+                    <label for="AmountDays">Сумма займа:</label>
+                    <input type="number" class="form-control" id="AmountDays" placeholder="Введите сумму" required>
+                    <div id="loanAmountErrorDays" class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="TermDays">Срок займа (в днях):</label>
+                    <input type="number" class="form-control" id="TermDays" placeholder="Введите срок" required>
+                    <div id="loanTermErrorDays" class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="DailyRateDays">Ставка (в день):</label>
+                    <input type="number" class="form-control" id="DailyRateDays" placeholder="Введите ставку" required>
+                    <div id="dailyRateErrorDays" class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="PaymentStepDays">Шаг платежа (в днях):</label>
+                    <input type="number" class="form-control" id="PaymentStepDays" placeholder="Введите шаг платежа" required>
+                    <div id="paymentStepErrorDays" class="error"></div>
+                </div>
+                <button type="button" class="btn btn-primary" id="calculateButtonDays">Рассчитать</button>
+            </form>
+            <div id="resultDays" style="display: none;">
+                <h2>Результат расчета:</h2>
+                <p>Ежемесячный платеж: <span id="monthlyPaymentDays"></span></p>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#monthlyCalcButton").click(function () {
+                $("#monthlyCalcForm").show();
+                $("#dailyCalcForm").hide();
+            });
+
+            $("#dailyCalcButton").click(function () {
+                $("#dailyCalcForm").show();
+                $("#monthlyCalcForm").hide();
+            });
+
+            $("#calculateButton").click(function () {
+                let loanAmount = $("#Amount").val();
+                let loanTerm = $("#Term").val();
+                let interestRate = $("#Rate").val();
+
+                if (!loanAmount || !loanTerm || !interestRate) {
+                    alert("Заполните все поля!");
+                    return;
+                }
+                if (loanAmount <=0 || loanTerm <=0 || interestRate <=0) {
+                    alert("Значения должны быть положительными!");
+                    return;
+                }
+
+                $.ajax({
+                    url: '/Loan/CalculateLoan', 
+                    type: 'POST',
+                    data: {
+                        Amount: loanAmount,
+                        Term: loanTerm,
+                        Rate: interestRate
+                    },
+                    success: function (response) {
+                        if (response.errors) {
+
+                            $.each(response.errors, function (key, value) {
+                                $("#" + key + "Error").text(value[0]);
+                            });
+                        } else {
+                            let url = '/Loan/Index'; 
+                            window.location.href = url + '?loanPayments=' + JSON.stringify(response); 
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("Ошибка AJAX: ", error);
+                    }
+                });
+            });
+
+            $("#calculateButtonDays").click(function () {
+                let loanAmount = $("#AmountDays").val();
+                let loanTerm = $("#TermDays").val();
+                let interestRate = $("#DailyRateDays").val();
+                let step = $("#PaymentStepDays").val();
+
+                if (!loanAmount || !loanTerm || !interestRate || !step) {
+                    alert("Заполните все поля!");
+                    return;
+                }
+                if (loanAmount <= 0 || loanTerm <= 0 || interestRate <= 0) {
+                    alert("Значения должны быть положительными!");
+                    return;
+                }
+
+
+                $.ajax({
+                    url: '/Loan/CalculateDaysLoan', 
+                    type: 'POST',
+                    data: {
+                        Amount: loanAmount,
+                        Term: loanTerm,
+                        Rate: interestRate,
+                        step: step
+                    },
+                    success: function (response) {
+                        if (response.errors) {
+                            $.each(response.errors, function (key, value) {
+                                $("#" + key + "Error").text(value[0]);
+                            });
+                        } else {
+                            let url = '/Loan/Index'; 
+                            window.location.href = url + '?loanPayments=' + JSON.stringify(response); 
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("Ошибка AJAX: ", error);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
